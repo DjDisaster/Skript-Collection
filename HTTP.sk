@@ -1,0 +1,37 @@
+#
+# The port defined on line 22 must be available to the server. This has also not been tested on Minehut and probably wont work there.
+# This skript just receives the content and broadcasts it on line 33, if you want to change it to do something else you can change it there.
+#
+
+import:
+	org.bukkit.Bukkit
+	org.bukkit.plugin.java.JavaPlugin
+
+	com.sun.net.httpserver.HttpServer
+	com.sun.net.httpserver.HttpHandler
+
+	java.io.IOException
+	java.io.OutputStream
+	java.net.InetSocketAddress
+	
+on load:
+
+	if {Server} is set:
+		{Server}.stop(0)
+		
+	set {Server} to HttpServer.create(new InetSocketAddress(20016), 0)
+	
+	create new section with {_whoCares}, {_exchange} stored in {_handler::handle}:
+		set {_content} to {_exchange}.getRequestURI().getQuery()
+		
+		set {_response} to "OK"
+		{_exchange}.sendResponseHeaders(200, {_response}.length())
+		set {_os} to {_exchange}.getResponseBody()
+		{_os}.write({_response}.getBytes())
+		{_os}.close()
+		
+		broadcast "received content: %{_content}%"
+		
+	set {_handler} to proxy instance of HttpHandler using {_handler::*}
+	{Server}.createContext("/cmd", {_handler})
+	{Server}.start()
