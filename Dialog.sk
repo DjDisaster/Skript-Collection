@@ -5,16 +5,30 @@ import:
 	io.papermc.paper.registry.data.dialog.DialogRegistryEntry
 	java.util.function.Consumer
 	net.kyori.adventure.text.Component
+	net.kyori.adventure.text.minimessage.MiniMessage
+	io.papermc.paper.registry.data.dialog.ActionButton
+	io.papermc.paper.registry.data.dialog.action.DialogAction
 	io.papermc.paper.registry.data.dialog.type.DialogType # https://jd.papermc.io/paper/1.21.10/io/papermc/paper/registry/data/dialog/type/DialogType.html
+	net.kyori.adventure.text.event.ClickCallback#.Options
+	io.papermc.paper.registry.data.dialog.action.DialogActionCallback
 	
 command /dialogue:
 	trigger:
+		set {_t} to " "
+		loop 5 times:
+			set {_t} to "%{_t}%%{_t}%"
+		set {_title} to "%{_t}%This is a test title.%{_t}%"
 		create new section with {_}, {_a} stored in {_section}:
-			set {_z} to {_a}.empty().base(DialogBase.builder(Component.text("Title")).build())
-			{_z}.type(DialogType.notice())
+			set {_z} to {_a}.empty().base(DialogBase.builder(Component.text({_title})).build())
+			{_z}.type(DialogType.serverLinks(CreateActionButton("test", "test", 128, "test", "abc"), 1, 128))
 			return {_z}
 		set {_dialogue} to CreateDialogue({_section})
 		player.showDialog({_dialogue})
+		
+function RegisterActions():
+	delete {Actions::*}
+	create new section with {_player}, {_view} stored in {Actions::Test}:
+		broadcast "&eAction: %{_player}%, %{_view}%"
 		
 		
 function CreateDialogue(section: object) :: object:
@@ -22,3 +36,16 @@ function CreateDialogue(section: object) :: object:
 	set {_a} to proxy instance of Consumer using {_rbf::*}
 	set {_dialogue} to Dialog.create({_a})		
 	return {_dialogue}
+	
+function CreateActionButton(name: String, tooltip: String, width: Integer, actionId: String, action: String) :: object:
+	set {_mm} to MiniMessage.miniMessage()
+	set {_name} to {_mm}.deserialize({_name})
+	set {_tooltip} to {_mm}.deserialize({_tooltip})
+	return ActionButton.builder({_name}).tooltip({_tooltip}).action(CreateCallback("test")).build()
+	
+function CreateCallback(id: String) :: object:
+	create new section with {_}, {_view}, {_audience} stored in {_cb::accept}:
+		broadcast "id: %{_id}% received: %{_view}% - %{_audience}%"
+	set {_proxy} to proxy instance of DialogActionCallback using {_cb::*}
+	set {_cbo} to ClickCallback.Options.builder().uses(1).lifetime(ClickCallback.DEFAULT_LIFETIME).build()
+	return DialogAction.customClick({_proxy}, {_cbo})
