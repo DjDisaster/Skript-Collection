@@ -1,0 +1,24 @@
+import:
+	io.papermc.paper.dialog.Dialog
+	io.papermc.paper.registry.data.dialog.DialogBase
+	io.papermc.paper.registry.RegistryBuilderFactory
+	io.papermc.paper.registry.data.dialog.DialogRegistryEntry
+	java.util.function.Consumer
+	net.kyori.adventure.text.Component
+	io.papermc.paper.registry.data.dialog.type.DialogType # https://jd.papermc.io/paper/1.21.10/io/papermc/paper/registry/data/dialog/type/DialogType.html
+	
+command /dialogue:
+	trigger:
+		create new section with {_}, {_a} stored in {_section}:
+			set {_z} to {_a}.empty().base(DialogBase.builder(Component.text("Title")).build())
+			{_z}.type(DialogType.notice())
+			return {_z}
+		set {_dialogue} to CreateDialogue({_section})
+		player.showDialog({_dialogue})
+		
+		
+function CreateDialogue(section: object) :: object:
+	set {_rbf::accept} to {_section}
+	set {_a} to proxy instance of Consumer using {_rbf::*}
+	set {_dialogue} to Dialog.create({_a})		
+	return {_dialogue}
