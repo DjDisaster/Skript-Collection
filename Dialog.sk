@@ -25,6 +25,9 @@ command /dialogue:
 		set {_dialogue} to CreateDialogue({_section})
 		player.showDialog({_dialogue})
 		
+on load:
+	RegisterActions()
+		
 function RegisterActions():
 	delete {Actions::*}
 	create new section with {_player}, {_view} stored in {Actions::Test}:
@@ -45,7 +48,7 @@ function CreateActionButton(name: String, tooltip: String, width: Integer, actio
 	
 function CreateCallback(id: String) :: object:
 	create new section with {_}, {_view}, {_audience} stored in {_cb::accept}:
-		broadcast "id: %{_id}% received: %{_view}% - %{_audience}%"
+		run section {Actions::%{_id}%} with {_audience}, {_view}
 	set {_proxy} to proxy instance of DialogActionCallback using {_cb::*}
 	set {_cbo} to ClickCallback.Options.builder().uses(1).lifetime(ClickCallback.DEFAULT_LIFETIME).build()
 	return DialogAction.customClick({_proxy}, {_cbo})
