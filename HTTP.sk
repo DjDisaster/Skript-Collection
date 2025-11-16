@@ -1,6 +1,7 @@
 #
-# The port defined on line 22 must be available to the server. This has also not been tested on Minehut and probably wont work there.
-# This skript just receives the content and broadcasts it on line 33, if you want to change it to do something else you can change it there.
+# The port defined on line 23 must be available to the server. This has also not been tested on Minehut and probably wont work there.
+# This skript just receives the content and broadcasts it on line 34, if you want to change it to do something else you can change it there.
+# To test if its working you can open a web browser and type 'http://[Server Ip]:[Port]/cmd?cmd?abc'
 #
 
 import:
