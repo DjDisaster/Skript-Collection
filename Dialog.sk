@@ -18,6 +18,7 @@ import:
 	io.papermc.paper.registry.data.dialog.input.DialogInput
 	io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 	io.papermc.paper.registry.data.dialog.input.TextDialogInput
+	io.papermc.paper.registry.data.dialog.body.DialogBody
 
 command /linksDialog:
 	trigger:
@@ -71,6 +72,12 @@ command /mutliDialog:
 			{_list}.add({_text1})
 			{_list}.add({_opt1})
 			{_t}.inputs({_list})
+
+			set {_dialogItem} to CreateDialogItem(1 of stone)
+			set {_bodyList} to new ArrayList()
+			{_bodyList}.add({_dialogItem})
+			{_t}.body({_bodyList})
+
 			set {_z} to {_a}.empty().base({_t}.build())
 			
 			set {_btn} to CreateActionButton("Do Nothing", "This button does nothing.", 128, "test")
@@ -124,6 +131,9 @@ function CreateOptionEntry(id: string, display: string, initial: boolean=false) 
 	set {_mm} to MiniMessage.miniMessage()
 	set {_display} to {_mm}.deserialize({_display})
 	return SingleOptionDialogInput.OptionEntry.create({_id}, {_display}, {_initial})
+
+function CreateDialogItem(item: object) :: object:
+	return DialogBody.item({_item}).build()
 
 function CreateActionButton(name: String, tooltip: String, width: Integer, action: String) :: object:
 	set {_mm} to MiniMessage.miniMessage()
