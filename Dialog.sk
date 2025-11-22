@@ -15,6 +15,8 @@ import:
 	java.net.URL
 	org.bukkit.Bukkit
 	java.util.ArrayList
+	io.papermc.paper.registry.data.dialog.input.DialogInput
+	io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
 	
 command /linksDialog:
 	trigger:
@@ -31,7 +33,7 @@ command /linksDialog:
 		create new section with {_}, {_a} stored in {_section}:
 			set {_t} to DialogBase.builder(Component.text({_title}))
 			set {_z} to {_a}.empty().base({_t}.build())
-			set {_type} to DialogType.serverLinks(CreateActionButton("test", "test", 128, "test", "abc"), 1, 128)
+			set {_type} to DialogType.serverLinks(CreateActionButton("test", "test", 128, "test"), 1, 128)
 			{_z}.type({_type})
 			return {_z}
 		set {_dialogue} to CreateDialogue({_section})
@@ -44,21 +46,40 @@ command /mutliDialog:
 			set {_t} to "%{_t}%%{_t}%"
 		set {_title} to "%{_t}%This is another test title.%{_t}%"
 		
+		
+		# buttons must be below number ranges
 		create new section with {_}, {_a} stored in {_section}:
 			set {_t} to DialogBase.builder(Component.text({_title}))
+
+			set {_range1} to CreateNumberRange("test1", "test1", 256, 20, 50, 2, 34)
+			set {_range2} to CreateNumberRange("test2", "test2", 256, 10, 100, 1, 50)
+			set {_opt::1} to CreateOptionEntry("opt1", "Easy", true)
+			set {_opt::2} to CreateOptionEntry("opt2", "Normal")
+			set {_opt::3} to CreateOptionEntry("opt3", "Hard")
+
+			set {_optList} to new ArrayList()
+			{_optList}.add({_opt::1})
+			{_optList}.add({_opt::2})
+			{_optList}.add({_opt::3})
+			set {_opt1} to CreateSingleOption("test", raw "<red><b>Diffuculty</red><!b><aqua>", 256, {_optList})
+
+			set {_list} to new ArrayList()
+			{_list}.add({_range1})
+			{_list}.add({_range2})
+			{_list}.add({_opt1})
+
+			{_t}.inputs({_list})
+
 			set {_z} to {_a}.empty().base({_t}.build())
-			# https://jd.papermc.io/paper/1.21.10/io/papermc/paper/registry/data/dialog/type/MultiActionType.Builder.html
-			set {_btn} to CreateActionButton("test", "test", 128, "test", "abc")
-			
+			set {_btn} to CreateActionButton("Do Nothing", "This button does nothing.", 128, "test")
+			set {_close} to CreateActionButton("Close", "Click here to close the awesome dialog!", 128, "close")
+
 			set {_list} to new ArrayList()
 			{_list}.add({_btn})
-			{_list}.add({_btn})
-			{_list}.add({_btn})
-			{_list}.add({_btn})
-			{_list}.add({_btn})
-			
-			set {_type} to DialogType.multiAction({_list}, {_btn}, 2)
+
+			set {_type} to DialogType.multiAction({_list}, {_close}, 128)
 			{_z}.type({_type})
+
 			return {_z}
 		set {_dialogue} to CreateDialogue({_section})
 		player.showDialog({_dialogue})
@@ -78,7 +99,22 @@ function CreateDialogue(section: object) :: object:
 	set {_dialogue} to Dialog.create({_a})		
 	return {_dialogue}
 	
-function CreateActionButton(name: String, tooltip: String, width: Integer, actionId: String, action: String) :: object:
+function CreateNumberRange(name: String, tooltip: String, width: integer, start: integer, end: integer, step: integer=1, initial: integer=1) :: object:
+	set {_mm} to MiniMessage.miniMessage()
+	set {_tooltip} to {_mm}.deserialize({_tooltip})
+	return DialogInput.numberRange({_name}, {_tooltip}, {_start}.floatValue(), {_end}.floatValue()).step({_step}.floatValue()).width({_width}.intValue()).initial({_initial}.floatValue()).build()
+	
+function CreateSingleOption(name: string, tooltip: String, width: integer, entries: object, labelVisible: boolean=true) :: object:
+	set {_mm} to MiniMessage.miniMessage()
+	set {_tooltip} to {_mm}.deserialize({_tooltip})
+	return DialogInput.singleOption({_name}, {_width}.intValue(), {_entries}, {_tooltip}, {_labelVisible})
+	
+function CreateOptionEntry(id: string, display: string, initial: boolean=false) :: object:
+	set {_mm} to MiniMessage.miniMessage()
+	set {_display} to {_mm}.deserialize({_display})
+	return SingleOptionDialogInput.OptionEntry.create({_id}, {_display}, {_initial})
+	
+function CreateActionButton(name: String, tooltip: String, width: Integer, action: String) :: object:
 	set {_mm} to MiniMessage.miniMessage()
 	set {_name} to {_mm}.deserialize({_name})
 	set {_tooltip} to {_mm}.deserialize({_tooltip})
@@ -92,11 +128,9 @@ function CreateCallback(id: String) :: object:
 	return DialogAction.customClick({_proxy}, {_cbo})
 	
 function AddLink(display: string, url: String):
-	broadcast "&eO: %{_o}%"
-	#{_o}.addLink(ServerLinks.Type.WEBSITE, (new URL({_url})).toURI())
 	Bukkit.getServer().getServerLinks().addLink(Component.text({_display}), (new URL({_url})).toURI())	
 	
 function ClearLinks():
-    set {_links} to Bukkit.getServer().getServerLinks()
-    loop ...({_links}.getLinks()):
-        {_links}.removeLink(loop-value)
+	set {_links} to Bukkit.getServer().getServerLinks()
+	loop ...({_links}.getLinks()):
+		{_links}.removeLink(loop-value)
