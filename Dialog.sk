@@ -14,6 +14,7 @@ import:
 	org.bukkit.ServerLinks
 	java.net.URL
 	org.bukkit.Bukkit
+	java.util.ArrayList
 	
 command /linksDialog:
 	trigger:
@@ -31,6 +32,32 @@ command /linksDialog:
 			set {_t} to DialogBase.builder(Component.text({_title}))
 			set {_z} to {_a}.empty().base({_t}.build())
 			set {_type} to DialogType.serverLinks(CreateActionButton("test", "test", 128, "test", "abc"), 1, 128)
+			{_z}.type({_type})
+			return {_z}
+		set {_dialogue} to CreateDialogue({_section})
+		player.showDialog({_dialogue})
+		
+command /mutliDialog:
+	trigger:
+		set {_t} to " "
+		loop 5 times:
+			set {_t} to "%{_t}%%{_t}%"
+		set {_title} to "%{_t}%This is another test title.%{_t}%"
+		
+		create new section with {_}, {_a} stored in {_section}:
+			set {_t} to DialogBase.builder(Component.text({_title}))
+			set {_z} to {_a}.empty().base({_t}.build())
+			# https://jd.papermc.io/paper/1.21.10/io/papermc/paper/registry/data/dialog/type/MultiActionType.Builder.html
+			set {_btn} to CreateActionButton("test", "test", 128, "test", "abc")
+			
+			set {_list} to new ArrayList()
+			{_list}.add({_btn})
+			{_list}.add({_btn})
+			{_list}.add({_btn})
+			{_list}.add({_btn})
+			{_list}.add({_btn})
+			
+			set {_type} to DialogType.multiAction({_list}, {_btn}, 2)
 			{_z}.type({_type})
 			return {_z}
 		set {_dialogue} to CreateDialogue({_section})
