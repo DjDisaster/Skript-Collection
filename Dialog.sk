@@ -8,7 +8,7 @@ import:
 	net.kyori.adventure.text.minimessage.MiniMessage
 	io.papermc.paper.registry.data.dialog.ActionButton
 	io.papermc.paper.registry.data.dialog.action.DialogAction
-	io.papermc.paper.registry.data.dialog.type.DialogType # https://jd.papermc.io/paper/1.21.10/io/papermc/paper/registry/data/dialog/type/DialogType.html
+	io.papermc.paper.registry.data.dialog.type.DialogType
 	net.kyori.adventure.text.event.ClickCallback
 	io.papermc.paper.registry.data.dialog.action.DialogActionCallback
 	org.bukkit.ServerLinks
@@ -17,19 +17,18 @@ import:
 	java.util.ArrayList
 	io.papermc.paper.registry.data.dialog.input.DialogInput
 	io.papermc.paper.registry.data.dialog.input.SingleOptionDialogInput
-	
+	io.papermc.paper.registry.data.dialog.input.TextDialogInput
+
 command /linksDialog:
 	trigger:
 		set {_t} to " "
 		loop 5 times:
 			set {_t} to "%{_t}%%{_t}%"
 		set {_title} to "%{_t}%This is a test title.%{_t}%"
-	
 		ClearLinks()
 		AddLink("Discord Server", "https://discord.gg/scMPEh93uj")
 		AddLink("Your Other Link", "https://discord.gg/scMPEh93uj")
 		player.sendLinks(Bukkit.getServer().getServerLinks())
-		
 		create new section with {_}, {_a} stored in {_section}:
 			set {_t} to DialogBase.builder(Component.text({_title}))
 			set {_z} to {_a}.empty().base({_t}.build())
@@ -38,98 +37,110 @@ command /linksDialog:
 			return {_z}
 		set {_dialogue} to CreateDialogue({_section})
 		player.showDialog({_dialogue})
-		
+
 command /mutliDialog:
 	trigger:
 		set {_t} to " "
 		loop 5 times:
 			set {_t} to "%{_t}%%{_t}%"
 		set {_title} to "%{_t}%This is another test title.%{_t}%"
-		
-		
-		# buttons must be below number ranges
 		create new section with {_}, {_a} stored in {_section}:
 			set {_t} to DialogBase.builder(Component.text({_title}))
-
 			set {_range1} to CreateNumberRange("test1", "test1", 256, 20, 50, 2, 34)
 			set {_range2} to CreateNumberRange("test2", "test2", 256, 10, 100, 1, 50)
-			set {_opt::1} to CreateOptionEntry("opt1", "Easy", true)
-			set {_opt::2} to CreateOptionEntry("opt2", "Normal")
-			set {_opt::3} to CreateOptionEntry("opt3", "Hard")
-
+			
+			set {_bool1} to CreateBoolean("bool1", "enable option", true, "yes", "no")
+			
+			set {_text1} to CreateText("text1", "Enter a value", 256, "default", 64)
+			
+			set {_opt::1} to CreateOptionEntry("opt1", "option one", true)
+			set {_opt::2} to CreateOptionEntry("opt2", "option two")
+			set {_opt::3} to CreateOptionEntry("opt3", "option three")
+			
 			set {_optList} to new ArrayList()
 			{_optList}.add({_opt::1})
 			{_optList}.add({_opt::2})
 			{_optList}.add({_opt::3})
-			set {_opt1} to CreateSingleOption("test", raw "<red><b>Diffuculty</red><!b><aqua>", 256, {_optList})
-
+			
+			set {_opt1} to CreateSingleOption("test", "hover", 128, {_optList})
+			
 			set {_list} to new ArrayList()
 			{_list}.add({_range1})
 			{_list}.add({_range2})
+			{_list}.add({_bool1})
+			{_list}.add({_text1})
 			{_list}.add({_opt1})
-
 			{_t}.inputs({_list})
-
 			set {_z} to {_a}.empty().base({_t}.build())
+			
 			set {_btn} to CreateActionButton("Do Nothing", "This button does nothing.", 128, "test")
 			set {_close} to CreateActionButton("Close", "Click here to close the awesome dialog!", 128, "close")
-
+			
 			set {_list} to new ArrayList()
 			{_list}.add({_btn})
-
+			
 			set {_type} to DialogType.multiAction({_list}, {_close}, 128)
 			{_z}.type({_type})
-
 			return {_z}
+			
 		set {_dialogue} to CreateDialogue({_section})
 		player.showDialog({_dialogue})
-		
+
 on load:
 	RegisterActions()
-		
+
 function RegisterActions():
 	delete {Actions::*}
 	create new section with {_player}, {_view} stored in {Actions::Test}:
 		broadcast "&eAction: %{_player}%, %{_view}%"
-		
-		
+
 function CreateDialogue(section: object) :: object:
 	set {_rbf::accept} to {_section}
 	set {_a} to proxy instance of Consumer using {_rbf::*}
-	set {_dialogue} to Dialog.create({_a})		
+	set {_dialogue} to Dialog.create({_a})
 	return {_dialogue}
-	
+
 function CreateNumberRange(name: String, tooltip: String, width: integer, start: integer, end: integer, step: integer=1, initial: integer=1) :: object:
 	set {_mm} to MiniMessage.miniMessage()
 	set {_tooltip} to {_mm}.deserialize({_tooltip})
 	return DialogInput.numberRange({_name}, {_tooltip}, {_start}.floatValue(), {_end}.floatValue()).step({_step}.floatValue()).width({_width}.intValue()).initial({_initial}.floatValue()).build()
-	
+
+function CreateBoolean(name: string, tooltip: String, initial: boolean, onTrue: string, onFalse: string) :: object:
+	set {_mm} to MiniMessage.miniMessage()
+	set {_tooltip} to {_mm}.deserialize({_tooltip})
+	return DialogInput.bool({_name}, {_tooltip}, {_initial}, {_onTrue}, {_onFalse})
+
+function CreateText(name: string, tooltip: String, width: integer, initial: String, max: integer) :: object:
+	set {_mm} to MiniMessage.miniMessage()
+	set {_tooltip} to {_mm}.deserialize({_tooltip})
+	return DialogInput.text({_name}, {_width}.intValue(), {_tooltip}, true, {_initial}, {_max}.intValue(), null)
+
 function CreateSingleOption(name: string, tooltip: String, width: integer, entries: object, labelVisible: boolean=true) :: object:
 	set {_mm} to MiniMessage.miniMessage()
 	set {_tooltip} to {_mm}.deserialize({_tooltip})
 	return DialogInput.singleOption({_name}, {_width}.intValue(), {_entries}, {_tooltip}, {_labelVisible})
-	
+
 function CreateOptionEntry(id: string, display: string, initial: boolean=false) :: object:
 	set {_mm} to MiniMessage.miniMessage()
 	set {_display} to {_mm}.deserialize({_display})
 	return SingleOptionDialogInput.OptionEntry.create({_id}, {_display}, {_initial})
-	
+
 function CreateActionButton(name: String, tooltip: String, width: Integer, action: String) :: object:
 	set {_mm} to MiniMessage.miniMessage()
 	set {_name} to {_mm}.deserialize({_name})
 	set {_tooltip} to {_mm}.deserialize({_tooltip})
 	return ActionButton.builder({_name}).tooltip({_tooltip}).action(CreateCallback("test")).build()
-	
+
 function CreateCallback(id: String) :: object:
 	create new section with {_}, {_view}, {_audience} stored in {_cb::accept}:
 		run section {Actions::%{_id}%} with {_audience}, {_view}
 	set {_proxy} to proxy instance of DialogActionCallback using {_cb::*}
 	set {_cbo} to ClickCallback.Options.builder().uses(1).lifetime(ClickCallback.DEFAULT_LIFETIME).build()
 	return DialogAction.customClick({_proxy}, {_cbo})
-	
+
 function AddLink(display: string, url: String):
-	Bukkit.getServer().getServerLinks().addLink(Component.text({_display}), (new URL({_url})).toURI())	
-	
+	Bukkit.getServer().getServerLinks().addLink(Component.text({_display}), (new URL({_url})).toURI())
+
 function ClearLinks():
 	set {_links} to Bukkit.getServer().getServerLinks()
 	loop ...({_links}.getLinks()):
