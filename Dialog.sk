@@ -9,18 +9,29 @@ import:
 	io.papermc.paper.registry.data.dialog.ActionButton
 	io.papermc.paper.registry.data.dialog.action.DialogAction
 	io.papermc.paper.registry.data.dialog.type.DialogType # https://jd.papermc.io/paper/1.21.10/io/papermc/paper/registry/data/dialog/type/DialogType.html
-	net.kyori.adventure.text.event.ClickCallback#.Options
+	net.kyori.adventure.text.event.ClickCallback
 	io.papermc.paper.registry.data.dialog.action.DialogActionCallback
+	org.bukkit.ServerLinks
+	java.net.URL
+	org.bukkit.Bukkit
 	
-command /dialogue:
+command /linksDialog:
 	trigger:
 		set {_t} to " "
 		loop 5 times:
 			set {_t} to "%{_t}%%{_t}%"
 		set {_title} to "%{_t}%This is a test title.%{_t}%"
+	
+		ClearLinks()
+		AddLink("Discord Server", "https://discord.gg/scMPEh93uj")
+		AddLink("Your Other Link", "https://discord.gg/scMPEh93uj")
+		player.sendLinks(Bukkit.getServer().getServerLinks())
+		
 		create new section with {_}, {_a} stored in {_section}:
-			set {_z} to {_a}.empty().base(DialogBase.builder(Component.text({_title})).build())
-			{_z}.type(DialogType.serverLinks(CreateActionButton("test", "test", 128, "test", "abc"), 1, 128))
+			set {_t} to DialogBase.builder(Component.text({_title}))
+			set {_z} to {_a}.empty().base({_t}.build())
+			set {_type} to DialogType.serverLinks(CreateActionButton("test", "test", 128, "test", "abc"), 1, 128)
+			{_z}.type({_type})
 			return {_z}
 		set {_dialogue} to CreateDialogue({_section})
 		player.showDialog({_dialogue})
@@ -52,3 +63,13 @@ function CreateCallback(id: String) :: object:
 	set {_proxy} to proxy instance of DialogActionCallback using {_cb::*}
 	set {_cbo} to ClickCallback.Options.builder().uses(1).lifetime(ClickCallback.DEFAULT_LIFETIME).build()
 	return DialogAction.customClick({_proxy}, {_cbo})
+	
+function AddLink(display: string, url: String):
+	broadcast "&eO: %{_o}%"
+	#{_o}.addLink(ServerLinks.Type.WEBSITE, (new URL({_url})).toURI())
+	Bukkit.getServer().getServerLinks().addLink(Component.text({_display}), (new URL({_url})).toURI())	
+	
+function ClearLinks():
+    set {_links} to Bukkit.getServer().getServerLinks()
+    loop ...({_links}.getLinks()):
+        {_links}.removeLink(loop-value)
