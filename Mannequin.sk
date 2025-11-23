@@ -16,5 +16,15 @@ function SetSkin(e: entity, p: offline player) :: entity:
 function SetDescription(e: entity, s: string):
 	{_e}.setDescription(Component.text({_s}))
 	
+function SetImmovable(e: entity, b: boolean):
+	{_e}.setImmovable({_b})
+
+function IsImmovable(e: entity) :: boolean:
+	return {_e}.isImmovable()
+
+# Note: Returns a component not a string.
+function GetDescription(e: entity) :: object:
+	return {_e}.getDescription()
+	
 # Note: You can use skripts default expressions to do equipment things such as:
 # set helmet of nearest entity to iron helmet
