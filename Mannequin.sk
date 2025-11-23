@@ -9,3 +9,6 @@ function SpawnNPC(l: location, p: offline player) :: entity:
 function SetSkin(e: entity, p: offline player) :: entity:
 	set {_profile} to ResolvableProfile.resolvableProfile().name("%{_p}%").build()
 	{_e}.setProfile({_profile})
+
+# Note: You can use skripts default expressions to do equipment things such as:
+# set helmet of nearest entity to iron helmet
