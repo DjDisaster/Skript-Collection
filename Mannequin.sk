@@ -1,5 +1,6 @@
 import:
 	io.papermc.paper.datacomponent.item.ResolvableProfile
+	net.kyori.adventure.text.Component
 
 function SpawnNPC(l: location, p: offline player) :: entity:
 	spawn mannequin at {_l}
@@ -9,6 +10,11 @@ function SpawnNPC(l: location, p: offline player) :: entity:
 function SetSkin(e: entity, p: offline player) :: entity:
 	set {_profile} to ResolvableProfile.resolvableProfile().name("%{_p}%").build()
 	{_e}.setProfile({_profile})
-
+	
+# Requires a custom name to be visible to appear.
+# This text shows below the custom name.
+function SetDescription(e: entity, s: string):
+	{_e}.setDescription(Component.text({_s}))
+	
 # Note: You can use skripts default expressions to do equipment things such as:
 # set helmet of nearest entity to iron helmet
