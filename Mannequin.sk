@@ -1,6 +1,7 @@
 import:
 	io.papermc.paper.datacomponent.item.ResolvableProfile
 	net.kyori.adventure.text.Component
+	net.kyori.adventure.text.minimessage.MiniMessage
 
 function SpawnNPC(l: location, p: offline player) :: entity:
 	spawn mannequin at {_l}
@@ -13,8 +14,13 @@ function SetSkin(e: entity, p: offline player) :: entity:
 	
 # Requires a custom name to be visible to appear.
 # This text shows below the custom name.
+# Example usage:
+# SetDescription(nearest entity, raw "<aqua>The owner of this account is a nerd.%nl%abc")
+# the 'raw' part is required.
 function SetDescription(e: entity, s: string):
-	{_e}.setDescription(Component.text({_s}))
+	set {_mm} to MiniMessage.miniMessage()
+	set {_s} to {_mm}.deserialize({_s})
+	{_e}.setDescription({_s})
 	
 function SetImmovable(e: entity, b: boolean):
 	{_e}.setImmovable({_b})
