@@ -1,0 +1,63 @@
+import:
+	com.google.gson.Gson
+	ch.njol.skript.variables.Variables
+	java.io.File
+	org.apache.commons.io.FileUtils
+	java.nio.charset.Charset 
+	java.util.TreeMap
+	
+# There is buginess if you have the same non-list variable name with a list variable. 
+# i.e test & test::1
+
+# Example usage. 
+on load:
+	set {Gson} to (new Gson()).newBuilder().setPrettyPrinting().setVersion(1.0).create()
+	
+	# Enable if you want to test, its working if {test::1} is 'def' 
+	if 0 is not {_z}:
+		stop 
+	
+	delete {test::*}
+	set {test::1} to "def"
+	
+	
+	set {_fp} to "plugins/Skript/json/test.json"
+	set {_json} to TreeToGson("test")
+	
+	WriteToFile({_fp}, {_json})
+	delete {test::*}
+	
+	GsonSetTree(ReadFromFile({_fp}), "test")
+	
+	if {test::1} is "def":
+		broadcast "GSON test passed."
+	else:
+		broadcast "GSON test failed."
+	
+function GetTreeNode(s: string) :: object:
+	set {_pos} to Variables.variables.treeMap
+	loop (split {_s} at "::"):
+		set {_pos} to {_pos}.get(loop-value)
+	return {_pos}
+	
+function TreeToGson(s: string) :: string:
+	return {Gson}.toJson(GetTreeNode({_s}))
+	
+function GsonSetTree(json: string, path: string):	
+	set {_pos} to Variables.variables.treeMap
+	set {_s::*} to {_path} split at "::"
+	loop ((size of {_s::*}) - 1) times:
+		set {_pos} to {_pos}.get({_s::%loop-value%})
+	set {_gson} to {Gson}.fromJson({_json}, TreeMap.class)
+	# cant set directly due to some caching stuff skript does.
+	loop ...{_gson}.entrySet():
+		set {%{_path}%::%loop-value.getKey()%} to loop-value.getValue()
+	
+function WriteToFile(filePath: string, toWrite: string):
+	set {_file} to new File({_filePath})
+	{_file}.getParentFile().mkdir()
+	FileUtils.writeStringToFile({_file}, {_toWrite})
+	
+function ReadFromFile(filePath: String) :: string:
+	set {_file} to new File({_filePath})
+	return FileUtils.readFileToString({_file}, Charset.defaultCharset())
