@@ -53,9 +53,20 @@ function GetTreeNode(s: string) :: object:
 		set {_pos} to {_pos}.get(loop-value)
 	return {_pos}
 	
+# Variables to json 
+expression json map of %string%:
+	get:
+		return TreeToGson({_s})
+		
 function TreeToGson(s: string) :: string:
 	return {Gson}.toJson(GetTreeNode({_s}))
 	
+# Set variables from gson.
+	
+effect map [json] %string% to %string%:
+	trigger:
+		GsonSetTree(expr-1, expr-2)
+		
 function GsonSetTree(json: string, path: string):	
 	set {_pos} to Variables.variables.treeMap
 	set {_s::*} to {_path} split at "::"
@@ -70,12 +81,20 @@ function GsonSetTree(json: string, path: string):
 			if {_customParseType} != null:
 				run section {Deserialisers::%{_customParseType}.substring(2)%} with {_v} and store result in {_v}
 		set {%{_path}%::%loop-value.getKey()%} to {_v}
-	
+		
+expression write %string% to file %string%:
+	get:
+		return WriteToFile(expr-1, expr-2)
+		
 function WriteToFile(filePath: string, toWrite: string):
 	set {_file} to new File({_filePath})
 	{_file}.getParentFile().mkdir()
 	FileUtils.writeStringToFile({_file}, {_toWrite})
 	
+expression (content|lines) of file %string%:
+	get:
+		return ReadFromFile(expr-1)
+		
 function ReadFromFile(filePath: String) :: string:
 	set {_file} to new File({_filePath})
 	return FileUtils.readFileToString({_file}, Charset.defaultCharset())
@@ -191,5 +210,3 @@ function RegisterSerialisers(gson: Object):
 		
 	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
 	{_gson}.registerTypeAdapter(CraftBlock.class, {_proxy})
-	
-	
