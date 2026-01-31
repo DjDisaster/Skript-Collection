@@ -7,7 +7,7 @@ import:
 	java.util.TreeMap
 	
 # There is buginess if you have the same non-list variable name with a list variable. 
-# i.e test & test::1
+# i.e test & test::1, no prevention has been made for this.
 
 # Example usage. 
 on load:
