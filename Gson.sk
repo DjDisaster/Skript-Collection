@@ -15,6 +15,8 @@ import:
 	ch.njol.skript.util.Timespan
 	org.bukkit.craftbukkit.block.CraftBlock
 	ch.njol.skript.lang.Variable
+	org.bukkit.craftbukkit.inventory.CraftItemStack
+	org.bukkit.inventory.ItemStack
 	
 # There is buginess if you have the same non-list variable name with a list variable. 
 # i.e test & test::1, no prevention has been made for this.
@@ -106,9 +108,9 @@ function GsonSetTree(json: string, path: string):
 				run section {Deserialisers::%{_customParseType}.substring(2)%} with {_v} and store result in {_v}
 		set {%{_path}%::%loop-value.getKey()%} to {_v}
 		
-expression write %string% to file %string%:
-	get:
-		return WriteToFile(expr-1, expr-2)
+effect write %string% to file %string%:
+	trigger:
+		WriteToFile(expr-2, expr-1)
 		
 function WriteToFile(filePath: string, toWrite: string):
 	set {_file} to new File({_filePath})
@@ -234,3 +236,28 @@ function RegisterSerialisers(gson: Object):
 		
 	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
 	{_gson}.registerTypeAdapter(CraftBlock.class, {_proxy})
+	
+	# Itemstack
+	
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+
+		set {_map} to {_value}.serialize()
+
+		loop ...{_map}.entrySet():
+			{_obj}.add(loop-value.getKey(), {Gson}.toJsonTree(loop-value.getValue()))
+			
+		{_obj}.addProperty("customParseType", "1,itemstack")
+		return {_obj}
+		
+	create new section with {_map} stored in {Deserialisers::itemstack}:
+		set {_raw} to new TreeMap()
+
+		loop ...{_map}.entrySet():
+			if loop-value.getKey() is not "customParseType":
+				{_raw}.put(loop-value.getKey(), loop-value.getValue())
+
+		return ItemStack.deserialize({_raw})
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(CraftItemStack.class, {_proxy})
