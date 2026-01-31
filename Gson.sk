@@ -17,6 +17,10 @@ import:
 	ch.njol.skript.lang.Variable
 	org.bukkit.craftbukkit.inventory.CraftItemStack
 	org.bukkit.inventory.ItemStack
+	ch.njol.skript.aliases.ItemType
+	ch.njol.yggdrasil.Fields
+	ch.njol.skript.aliases.ItemData
+	org.bukkit.Material
 	
 # There is buginess if you have the same non-list variable name with a list variable. 
 # i.e test & test::1, no prevention has been made for this.
@@ -257,7 +261,53 @@ function RegisterSerialisers(gson: Object):
 			if loop-value.getKey() is not "customParseType":
 				{_raw}.put(loop-value.getKey(), loop-value.getValue())
 
-		return ItemStack.deserialize({_raw})
+		return ItemStack.deserialize({_raw})	
 		
 	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
 	{_gson}.registerTypeAdapter(CraftItemStack.class, {_proxy})
+	
+	# Item Type (not got full support just support, im so confused on this class)
+	
+
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+
+		{_obj}.addProperty("amount", {_value}.getInternalAmount())
+		{_obj}.addProperty("all", {_value}.isAll())
+
+		set {_types::*} to ...{_value}.getTypes()
+		set {_n} to 0
+		{_obj}.addProperty("count", size of {_types::*})
+		loop {_types::*}:
+			set {_d} to loop-value
+			{_obj}.addProperty("material-%{_n}%", "%{_d}.getType()%")
+			{_obj}.addProperty("isAnything-%{_n}%", {_d}.isAnything)
+			{_obj}.addProperty("itemForm-%{_n}%", {_d}.itemForm)
+			{_obj}.addProperty("plain-%{_n}%", {_d}.isPlain())
+			{_obj}.addProperty("itemFlags-%{_n}%", {_d}.itemFlags)
+			{_obj}.addProperty("itemFlags-%{_n}%", {_d}.itemFlags)
+
+			add 1 to {_n}
+
+		{_obj}.addProperty("customParseType", "1,itemtype")
+		return {_obj}
+
+	create new section with {_map} stored in {Deserialisers::itemtype}:
+		set {_count} to {_map}.get("count")
+		set {_it} to new ItemType()
+		set {_it}.amount to {_map}.get("amount")
+		loop {_count} times:
+			set {_n} to loop-value - 1
+			set {_material} to {_map}.get("material-%{_n}%")
+			set {_data} to new ItemData(Material.valueOf({_material}))
+			set {_data}.itemForm to {_map}.get("itemForm-%{_n}%")
+			{_data}.setPlain({_map}.get("plain-%{_n}%"))
+			set {_data}.itemFlags to {_map}.get("itemFlags-%{_n}%")		
+			set {_data}.isAnything to {_map}.get("isAnything-%{_n}%")
+			{_it}.add({_data})
+		
+
+		return {_it}
+
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(ItemType.class, {_proxy})
