@@ -14,9 +14,17 @@ import:
 	java.util.Date as JavaDate
 	ch.njol.skript.util.Timespan
 	org.bukkit.craftbukkit.block.CraftBlock
+	ch.njol.skript.lang.Variable
 	
 # There is buginess if you have the same non-list variable name with a list variable. 
 # i.e test & test::1, no prevention has been made for this.
+
+# Examples:
+#
+# set {temp} to json map of {test::*}
+# map {temp} to {a::*}
+# write {temp} to file "plugins/Skript/json/test.json"
+# set {temp} to content of file "plugins/Skript/json/test.json"
 
 # Example usage. 
 on load:
@@ -54,8 +62,16 @@ function GetTreeNode(s: string) :: object:
 	return {_pos}
 	
 # Variables to json 
-expression json map of %string%:
+expression json map of %objects%:
+	parse:
+		expr-1 is an instance of Variable
+		continue
 	get:
+		set {_s} to "%the raw expr-1%"
+		set {_s} to {_s}.substring(1, {_s}.length() - 1)
+		if {_s} does not end with "*":
+			stop 
+		set {_s} to {_s}.substring(0, {_s}.length() - 3)
 		return TreeToGson({_s})
 		
 function TreeToGson(s: string) :: string:
@@ -63,9 +79,17 @@ function TreeToGson(s: string) :: string:
 	
 # Set variables from gson.
 	
-effect map [json] %string% to %string%:
+effect map [json] %string% to %variables%:
+	parse:
+		expr-2 is an instance of Variable
+		continue
 	trigger:
-		GsonSetTree(expr-1, expr-2)
+		set {_s} to "%the raw expr-2%"
+		set {_s} to {_s}.substring(1, {_s}.length() - 1)
+		if {_s} does not end with "*":
+			stop 
+		set {_s} to {_s}.substring(0, {_s}.length() - 3)
+		GsonSetTree(expr-1, {_s})
 		
 function GsonSetTree(json: string, path: string):	
 	set {_pos} to Variables.variables.treeMap
