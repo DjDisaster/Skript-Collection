@@ -5,13 +5,25 @@ import:
 	org.apache.commons.io.FileUtils
 	java.nio.charset.Charset 
 	java.util.TreeMap
+	com.google.gson.JsonObject
+	com.google.gson.JsonSerializer
+	com.google.gson.internal.LinkedTreeMap
+	org.bukkit.craftbukkit.entity.CraftPlayer
+	org.bukkit.craftbukkit.CraftWorld
+	ch.njol.skript.util.Date
+	java.util.Date as JavaDate
+	ch.njol.skript.util.Timespan
+	org.bukkit.craftbukkit.block.CraftBlock
 	
 # There is buginess if you have the same non-list variable name with a list variable. 
 # i.e test & test::1, no prevention has been made for this.
 
 # Example usage. 
 on load:
-	set {Gson} to (new Gson()).newBuilder().setPrettyPrinting().setVersion(1.0).create()
+	set {Gson} to (new Gson()).newBuilder().setPrettyPrinting().setVersion(1.0)
+	RegisterSerialisers({Gson})
+	set {Gson} to {Gson}.create()
+	
 	
 	# Enable if you want to test, its working if {test::1} is 'def' 
 	if 0 is not {_z}:
@@ -37,6 +49,7 @@ on load:
 function GetTreeNode(s: string) :: object:
 	set {_pos} to Variables.variables.treeMap
 	loop (split {_s} at "::"):
+		exit 1 loop if loop-value = ""
 		set {_pos} to {_pos}.get(loop-value)
 	return {_pos}
 	
@@ -51,7 +64,12 @@ function GsonSetTree(json: string, path: string):
 	set {_gson} to {Gson}.fromJson({_json}, TreeMap.class)
 	# cant set directly due to some caching stuff skript does.
 	loop ...{_gson}.entrySet():
-		set {%{_path}%::%loop-value.getKey()%} to loop-value.getValue()
+		set {_v} to loop-value.getValue()
+		if class of {_v} is LinkedTreeMap:
+			set {_customParseType} to {_v}.get("customParseType")
+			if {_customParseType} != null:
+				run section {Deserialisers::%{_customParseType}.substring(2)%} with {_v} and store result in {_v}
+		set {%{_path}%::%loop-value.getKey()%} to {_v}
 	
 function WriteToFile(filePath: string, toWrite: string):
 	set {_file} to new File({_filePath})
@@ -61,3 +79,117 @@ function WriteToFile(filePath: string, toWrite: string):
 function ReadFromFile(filePath: String) :: string:
 	set {_file} to new File({_filePath})
 	return FileUtils.readFileToString({_file}, Charset.defaultCharset())
+	
+function RegisterSerialisers(gson: Object):
+
+	# Locations
+
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+		{_obj}.addProperty("world", "%world of {_value}%")
+		{_obj}.addProperty("x", x-loc of {_value})
+		{_obj}.addProperty("y", y-loc of {_value})
+		{_obj}.addProperty("z", z-loc of {_value})
+		{_obj}.addProperty("pitch", pitch of {_value})
+		{_obj}.addProperty("yaw", yaw of {_value})
+		{_obj}.addProperty("customParseType", "1,location")
+		return {_obj}
+		
+	create new section with {_map} stored in {Deserialisers::location}:
+		return location({_map}.get("x"), {_map}.get("y"), {_map}.get("z"), world {_map}.get("world"), {_map}.get("pitch"), {_map}.get("yaw"))
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(Location.class, {_proxy})
+	
+	# Players
+	
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+		{_obj}.addProperty("username", "%name of {_value}%")
+		{_obj}.addProperty("customParseType", "1,player")
+		return {_obj}
+		
+	create new section with {_map} stored in {Deserialisers::player}:
+		return {_map}.get("username") parsed as offline player
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(CraftPlayer.class, {_proxy})
+	
+	# Worlds 
+	
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+		{_obj}.addProperty("world", "%name of {_value}%")
+		{_obj}.addProperty("customParseType", "1,world")
+		return {_obj}
+		
+	create new section with {_map} stored in {Deserialisers::world}:
+		return world {_map}.get("world")
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(CraftWorld.class, {_proxy})
+	
+	# Skript Date
+	
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+		{_obj}.addProperty("date", {_value}.getTime())
+		{_obj}.addProperty("customParseType", "1,date")
+		return {_obj}
+		
+	create new section with {_map} stored in {Deserialisers::date}:
+		return Date.fromJavaDate(new JavaDate({_map}.get("date")))
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(Date.class, {_proxy})
+	
+	# Skript Timespan
+	
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+		{_obj}.addProperty("time", {_value}.millis)
+		{_obj}.addProperty("customParseType", "1,timespan")
+		return {_obj}
+		
+	create new section with {_map} stored in {Deserialisers::timespan}:
+		return new Timespan({_map}.get("time"))
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(Timespan.class, {_proxy})
+	
+	# Bukkit Vector
+	
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+		{_obj}.addProperty("x", {_value}.getX())
+		{_obj}.addProperty("y", {_value}.getY())
+		{_obj}.addProperty("z", {_value}.getZ())
+		{_obj}.addProperty("customParseType", "1,vector")
+		return {_obj}
+	
+	create new section with {_map} stored in {Deserialisers::vector}:
+		return vector({_map}.get("x"), {_map}.get("y"), {_map}.get("z"))
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(Vector.class, {_proxy})
+	
+	# Bukkit Block
+	
+	create new section with {_}, {_value}, {_type}, {_context} stored in {_temp::serialize}:
+		set {_obj} to new JsonObject()
+		{_obj}.addProperty("world", "%world of {_value}%")
+		{_obj}.addProperty("x", x-loc of {_value})
+		{_obj}.addProperty("y", y-loc of {_value})
+		{_obj}.addProperty("z", z-loc of {_value})
+		{_obj}.addProperty("pitch", pitch of {_value})
+		{_obj}.addProperty("yaw", yaw of {_value})
+		{_obj}.addProperty("customParseType", "1,block")
+		return {_obj}
+		
+	create new section with {_map} stored in {Deserialisers::block}:
+		return block at location({_map}.get("x"), {_map}.get("y"), {_map}.get("z"), world {_map}.get("world"), {_map}.get("pitch"), {_map}.get("yaw"))
+		
+	set {_proxy} to proxy instance of JsonSerializer using {_temp::*}
+	{_gson}.registerTypeAdapter(CraftBlock.class, {_proxy})
+	
+	
