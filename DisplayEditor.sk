@@ -1,0 +1,124 @@
+command /createmodel <string>:
+	permission: op
+	trigger:
+		StartModel(player, location of block at player, arg-1)
+		
+function StartModel(p: player, l: location, name: string):
+	set {_l} to location(-32.5,-59.5,-22.5, world "models")
+	clear {_p}'s inventory 
+	set slot 0 of {_p}'s inventory to stone named "&cCreate block"
+	set slot 1 of {_p}'s inventory to blaze rod named "&cResize"
+	set slot 2 of {_p}'s inventory to stick named "&cMove Relative"
+	set {EditMode::%{_p}'s uuid%} to {_name}
+	
+	
+on place:
+	if player's held item = stone named "&cCreate block":
+		if {EditMode::%player's uuid%} is set:
+			AddNode({EditMode::%player's uuid%}, location of block)
+on click:
+	if {EditMode::%player's uuid%} is set:
+		set {_id} to GetTargetID(player)
+		if {_id} is not set:
+			stop
+		if player's held item = blaze rod named "&cResize":
+			send "&cEnter new scale value." to player
+			set {-Editing::%player's uuid%::Target} to {_id}
+			set {-Editing::%player's uuid%::Editing} to "scale"
+
+		if player's held item = stick named "&cMove Relative":
+			send "&cEnter a vector." to player
+			set {-Editing::%player's uuid%::Target} to {_id}
+			set {-Editing::%player's uuid%::Editing} to "moveRelative"
+
+			
+on chat:
+	if {-Editing::%player's uuid%::Target} is set:
+		set {_id} to {-Editing::%player's uuid%::Target}
+		set {_type} to {-Editing::%player's uuid%::Editing}
+		set {_model} to {EditMode::%player's uuid%}
+		
+		if {_type} = "scale":
+			set {_s::*} to message split at ","
+			set {_x} to {_s::1} parsed as number
+			set {_y} to {_s::2} parsed as number
+			set {_z} to {_s::3} parsed as number
+			set {ModelInfo::%{_model}%::Nodes::%{_id}%::Scale} to vector({_x},{_y},{_z})
+			SpawnNode({_model}, {_id})
+			broadcast "%{_x}%,%{_y}%,%{_z}%,%{_model}%,%{_id}%"
+			
+		if {_type} = "moveRelative":
+			set {_s::*} to message split at ","
+			set {_x} to {_s::1} parsed as number
+			set {_y} to {_s::2} parsed as number
+			set {_z} to {_s::3} parsed as number
+			set {ModelInfo::%{_model}%::Nodes::%{_id}%::Position} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Position} + vector({_x},{_y},{_z})
+			SpawnNode({_model}, {_id})
+			broadcast "%{_x}%,%{_y}%,%{_z}%,%{_model}%,%{_id}%"
+			
+		delete {-Editing::%player's uuid%::Target}
+		delete {-Editing::%player's uuid%::Editing}
+		cancel event
+		
+		
+command /setScaleFactor <number>:
+	trigger:
+		set {Options::%player's uuid%::ScaleFactor} to arg-1
+			
+function AddNode(model: string, l: location):
+	set {_id} to random uuid
+	set {ModelInfo::%{_model}%::Nodes::%{_id}%::Type} to "obsidian"
+	set {ModelInfo::%{_model}%::Nodes::%{_id}%::Position} to vector from location(-32.5,-59.5,-22.5, world "models") to ({_l} ~ vector(-0.5,-0.5,-0.5))
+	set {ModelInfo::%{_model}%::Nodes::%{_id}%::Scale} to vector(1,1,1)
+	set {ModelInfo::%{_model}%::Nodes::%{_id}%::Rotation} to vector(0,0,0)
+	SpawnNode({_model}, {_id})
+	
+function SpawnNode(model: string, id: string):
+	set {_pos} to (location(-32.5,-59.5,-22.5, world "models") ~ {ModelInfo::%{_model}%::Nodes::%{_id}%::Position})
+	if {ModelInfo::%{_model}%::Nodes::%{_id}%::Entity} is not set:
+		spawn block display at {_pos}
+		set {ModelInfo::%{_model}%::Nodes::%{_id}%::Entity} to last spawned entity
+	set {_e} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Entity}
+	teleport {_e} to {_pos}
+	set display scale of {_e} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Scale}
+	broadcast "scale: %{ModelInfo::%{_model}%::Nodes::%{_id}%::Scale}%"
+	set blockdata of {_e} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Type} parsed as blockdata
+	
+function GetTargetID(p: player) :: string:
+	set {_pos1} to {_p}'s eyes 
+	set {_infront} to location 5 meters infront of {_p}'s eyes
+	set {_model} to {EditMode::%{_p}'s uuid%}
+	
+	set {_raySize} to 0.02
+	loop indexes of {ModelInfo::%{_model}%::Nodes::*}:
+		set {_id} to loop-value 
+		
+		set {_pos} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Position}
+		set {_scale} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Scale}
+		set {_rotation} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Rotation}
+
+		set {_v} to vector from {_pos1} to {_infront}		
+		set {_pos2} to (location(-32.5,-59.5,-22.5, world "models") ~ {_pos}) ~ {_scale}
+		set {_pos} to (location(-32.5,-59.5,-22.5, world "models") ~ {_pos})
+		
+		set {_n} to 0
+		while {_n} < 5:
+			add 0.02 to {_n}
+			set vector length of {_v} to {_n}
+			
+			if ({_pos1} ~ {_v}) is within {_pos} and {_pos2}:
+				set {_size::%{_id}%} to {_n}
+				exit 1 loop
+	set {_s::*} to sorted indices of {_size::*} in ascending order 
+	return {_s::1}
+	
+every tick:
+	loop all players where [{EditMode::%input's uuid%} is set]:
+		set {_model} to {EditMode::%loop-player's uuid%}
+		set {_id} to GetTargetID(loop-player)
+		set {_target} to {ModelInfo::%{_model}%::Nodes::%{_id}%::Entity}
+		if {_target} != {-LastSelect::%loop-player's uuid%}:
+			set glowing of {-LastSelect::%loop-player's uuid%} to false
+			set glow color override of {_target} to green
+			set glowing of {_target} to true
+			set {-LastSelect::%loop-player's uuid%} to {_target}
